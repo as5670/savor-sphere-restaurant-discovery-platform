@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from "react";
 import { useParams } from "react-router-dom";
-import { FiStar, FiClock, FiMapPin, FiUsers } from "react-icons/fi";
+import { FiStar, FiUsers } from "react-icons/fi";
 import Loader from "../components/Loader";
 
 const RestaurantDetails = () => {
