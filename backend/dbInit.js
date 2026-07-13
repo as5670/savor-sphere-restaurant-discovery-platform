@@ -85,10 +85,10 @@ async function initializeDatabase() {
       userId = users[0].id;
     }
 
-    // Check restaurant count to determine if we should clear and re-seed 10 premium restaurants with dishes + images
+    // Check restaurant count to determine if we should clear and re-seed 10 premium restaurants in India
     const [existingRestaurants] = await db.query("SELECT COUNT(*) as count FROM restaurants");
-    if (existingRestaurants[0].count < 11) {
-      console.log("🌱 Seeding/Resetting premium restaurant and dish database (10 Cuisines with images)...");
+    if (existingRestaurants[0].count < 12) {
+      console.log("🌱 Seeding/Resetting premium restaurant and dish database (India Locations)...");
       
       // Safe truncate under foreign keys
       await db.query("SET FOREIGN_KEY_CHECKS = 0");
@@ -96,14 +96,15 @@ async function initializeDatabase() {
       await db.query("TRUNCATE TABLE restaurants");
       await db.query("SET FOREIGN_KEY_CHECKS = 1");
 
+      // Seeded coordinates spread around New Delhi, India area (Latitude: 28.6139, Longitude: 77.2090)
       const restaurants = [
         {
           name: "Trattoria Bella",
           cuisine: "Italian",
           price_ranges: "$$",
           rating: 4.6,
-          latitude: 40.7128,
-          longitude: -74.0060,
+          latitude: 28.6139,
+          longitude: 77.2090,
           image_url: "https://images.unsplash.com/photo-1555396273-367ea4eb4db5?w=600"
         },
         {
@@ -111,8 +112,8 @@ async function initializeDatabase() {
           cuisine: "Japanese",
           price_ranges: "$$$",
           rating: 4.8,
-          latitude: 40.7250,
-          longitude: -74.0100,
+          latitude: 28.6250,
+          longitude: 77.2200,
           image_url: "https://images.unsplash.com/photo-1579871494447-9811cf80d66c?w=600"
         },
         {
@@ -120,8 +121,8 @@ async function initializeDatabase() {
           cuisine: "American",
           price_ranges: "$",
           rating: 4.2,
-          latitude: 40.7300,
-          longitude: -73.9950,
+          latitude: 28.6300,
+          longitude: 77.2150,
           image_url: "https://images.unsplash.com/photo-1568901346375-23c9450c58cd?w=600"
         },
         {
@@ -129,8 +130,8 @@ async function initializeDatabase() {
           cuisine: "French",
           price_ranges: "$$$",
           rating: 4.9,
-          latitude: 40.7410,
-          longitude: -74.0020,
+          latitude: 28.6410,
+          longitude: 77.2020,
           image_url: "https://images.unsplash.com/photo-1514933651103-005eec06c04b?w=600"
         },
         {
@@ -138,8 +139,8 @@ async function initializeDatabase() {
           cuisine: "Indian",
           price_ranges: "$$",
           rating: 4.7,
-          latitude: 40.7190,
-          longitude: -73.9920,
+          latitude: 28.6190,
+          longitude: 77.1920,
           image_url: "https://images.unsplash.com/photo-1585938338392-50a59970d2ee?w=600"
         },
         {
@@ -147,8 +148,8 @@ async function initializeDatabase() {
           cuisine: "Mexican",
           price_ranges: "$$",
           rating: 4.4,
-          latitude: 40.7340,
-          longitude: -74.0080,
+          latitude: 28.6340,
+          longitude: 77.2080,
           image_url: "https://images.unsplash.com/photo-1565299624946-b28f40a0ae38?w=600"
         },
         {
@@ -156,8 +157,8 @@ async function initializeDatabase() {
           cuisine: "Chinese",
           price_ranges: "$$",
           rating: 4.3,
-          latitude: 40.7150,
-          longitude: -73.9980,
+          latitude: 28.6150,
+          longitude: 77.1980,
           image_url: "https://images.unsplash.com/photo-1563245372-f21724e3856d?w=600"
         },
         {
@@ -165,8 +166,8 @@ async function initializeDatabase() {
           cuisine: "Greek",
           price_ranges: "$$",
           rating: 4.5,
-          latitude: 40.7220,
-          longitude: -74.0010,
+          latitude: 28.6220,
+          longitude: 77.2010,
           image_url: "https://images.unsplash.com/photo-1540189549336-e6e99c3679fe?w=600"
         },
         {
@@ -174,8 +175,8 @@ async function initializeDatabase() {
           cuisine: "Thai",
           price_ranges: "$$",
           rating: 4.6,
-          latitude: 40.7280,
-          longitude: -74.0040,
+          latitude: 28.6280,
+          longitude: 77.2040,
           image_url: "https://images.unsplash.com/photo-1559314809-0d155014e29e?w=600"
         },
         {
@@ -183,8 +184,8 @@ async function initializeDatabase() {
           cuisine: "Spanish",
           price_ranges: "$$$",
           rating: 4.7,
-          latitude: 40.7370,
-          longitude: -73.9980,
+          latitude: 28.6370,
+          longitude: 77.1980,
           image_url: "https://images.unsplash.com/photo-1515443961218-a51367888e4b?w=600"
         }
       ];

@@ -37,7 +37,7 @@ const mockRestaurants = [
 
 const RestaurantList = () => {
   const [restaurants, setRestaurants] = useState([]);
-  const [filters, setFilters] = useState({ cuisine: '', price: '', distance: '25', rating: '' });
+  const [filters, setFilters] = useState({ cuisine: '', price: '', distance: '', rating: '' });
   const [sortBy, setSortBy] = useState('rating'); // 'rating', 'distance', 'price'
   const [userLocation, setUserLocation] = useState(null);
   const [activeCenter, setActiveCenter] = useState(null);
@@ -144,7 +144,7 @@ const RestaurantList = () => {
 
   // Filter restaurants by maximum distance radius slider
   const filteredRestaurants = restaurants.filter((restaurant) => {
-    if (filters.distance && restaurant.distance !== null) {
+    if (filters.distance && filters.distance !== "100" && restaurant.distance !== null) {
       return restaurant.distance <= parseFloat(filters.distance);
     }
     return true;
@@ -209,12 +209,12 @@ const RestaurantList = () => {
         <div style={styles.filterFieldRange}>
           <div style={styles.rangeHeader}>
             <label style={styles.fieldLabel}>Radius</label>
-            <span style={styles.rangeVal}>{filters.distance} km</span>
+            <span style={styles.rangeVal}>{filters.distance && filters.distance !== "100" ? `${filters.distance} km` : "Any Proximity"}</span>
           </div>
           <input
             type="range"
             name="distance"
-            value={filters.distance}
+            value={filters.distance || "100"}
             onChange={handleFilterChange}
             min="5"
             max="100"
