@@ -10,6 +10,7 @@ const RestaurantDetails = ({ user }) => {
   const [reviews, setReviews] = useState([]);
   const [reservations, setReservations] = useState([]);
   const [menu, setMenu] = useState([]);
+  const [busyTimes, setBusyTimes] = useState({});
   const [menuSearch, setMenuSearch] = useState("");
   
   const [newReview, setNewReview] = useState({ rating: 5, comment: "" });
@@ -35,6 +36,17 @@ const RestaurantDetails = ({ user }) => {
     }
   };
 
+  const fetchBusyTimes = async () => {
+    try {
+      const res = await fetch(`${API_BASE_URL}/api/restaurants/${id}/busy-times`);
+      if (res.ok) {
+        setBusyTimes(await res.json());
+      }
+    } catch (e) {
+      console.error("Error fetching busy times", e);
+    }
+  };
+
   useEffect(() => {
     const fetchData = async () => {
       try {
@@ -45,7 +57,7 @@ const RestaurantDetails = ({ user }) => {
 
         setRestaurant(await restaurantRes.json());
         setMenu(await menuRes.json());
-        await Promise.all([fetchReviews(), fetchReservations()]);
+        await Promise.all([fetchReviews(), fetchReservations(), fetchBusyTimes()]);
       } catch (error) {
         console.error("Error fetching data:", error);
       } finally {
@@ -111,6 +123,7 @@ const RestaurantDetails = ({ user }) => {
         setMessage("✅ Reservation successful!");
         setNewReservation({ date: "", time: "", guests: 1 });
         await fetchReservations();
+        await fetchBusyTimes(); // Reload busy times heatmap stats
       } else {
         setMessage(`❌ ${data.error || "Failed to make reservation."}`);
       }
@@ -176,10 +189,17 @@ const RestaurantDetails = ({ user }) => {
             <div style={styles.menuGrid}>
               {filteredMenu.map((dish) => (
                 <article key={dish.id} style={styles.menuCard}>
+                  {dish.image_url && (
+                    <img 
+                      src={dish.image_url} 
+                      alt={dish.name} 
+                      style={styles.dishImage} 
+                    />
+                  )}
                   <div style={styles.menuContent}>
                     <div style={styles.menuHeaderRow}>
                       <h3 style={styles.dishName}>{dish.name}</h3>
-                      <p style={styles.dishPrice}>₹{dish.price}</p>
+                      <p style={styles.dishPrice}>${dish.price}</p>
                     </div>
                     {dish.description && <p style={styles.dishDescription}>{dish.description}</p>}
                   </div>
@@ -189,6 +209,61 @@ const RestaurantDetails = ({ user }) => {
           ) : (
             <p style={styles.emptyText}>No dishes match your search.</p>
           )}
+        </section>
+
+        {/* Busy-Times Prediction Heatmap */}
+        <section style={styles.section} className="glass-card">
+          <h2 style={styles.sectionTitle}>Demand & Occupancy Heatmap</h2>
+          <p style={styles.sectionSubtitle}>Real-time historical occupancy predictions. Gold slots indicate high-booking hours.</p>
+          
+          <div style={styles.heatmapWrapper}>
+            <div style={styles.heatmapDaysCol}>
+              {["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"].map(day => (
+                <div key={day} style={styles.heatmapDayName}>{day.substring(0, 3)}</div>
+              ))}
+            </div>
+            <div style={styles.heatmapGrid}>
+              <div style={styles.heatmapHeaderRow}>
+                {[12, 14, 16, 18, 20, 22].map(hour => (
+                  <div key={hour} style={styles.heatmapHourLabel}>{hour > 12 ? `${hour - 12} PM` : `${hour} PM`}</div>
+                ))}
+              </div>
+              <div style={styles.heatmapMatrix}>
+                {["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"].map(day => (
+                  <div key={day} style={styles.heatmapRow}>
+                    {[12, 14, 16, 18, 20, 22].map(hour => {
+                      const busyVal = (busyTimes[day] && busyTimes[day][hour]) || 0;
+                      let cellColor = "rgba(255, 255, 255, 0.03)";
+                      let textColor = "var(--text-muted)";
+                      
+                      if (busyVal > 50) {
+                        cellColor = `rgba(226, 184, 85, ${busyVal / 100})`;
+                        textColor = "var(--bg-primary)";
+                      } else if (busyVal > 0) {
+                        cellColor = `rgba(255, 255, 255, ${0.05 + (busyVal / 150)})`;
+                        textColor = "var(--text-primary)";
+                      }
+                      
+                      return (
+                        <div 
+                          key={hour} 
+                          style={{
+                            ...styles.heatmapCell,
+                            backgroundColor: cellColor,
+                            color: textColor,
+                            boxShadow: busyVal > 70 ? "0 0 10px rgba(226,184,85,0.3)" : "none"
+                          }}
+                          title={`${day} at ${hour > 12 ? `${hour - 12} PM` : `${hour} PM`}: ${busyVal}% booked`}
+                        >
+                          {busyVal}%
+                        </div>
+                      );
+                    })}
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
         </section>
 
         {/* Side-by-Side: Reservations & Reviews */}
@@ -287,6 +362,7 @@ const RestaurantDetails = ({ user }) => {
             {user ? (
               <form onSubmit={handleReviewSubmit} style={styles.form}>
                 <h3 style={styles.subheading}>Write a Review</h3>
+                <p style={styles.verifiedNotice}>🔒 Only guests with a verified reservation at this restaurant can submit reviews.</p>
                 <div style={styles.formRow}>
                   <label style={styles.label}>Rating</label>
                   <select
@@ -386,7 +462,7 @@ const styles = {
     padding: "40px",
     display: "flex",
     flexDirection: "column",
-    gap: "30px",
+    gap: "40px",
   },
   section: {
     padding: "30px",
@@ -408,6 +484,11 @@ const styles = {
     color: "var(--text-primary)",
     margin: 0,
   },
+  sectionSubtitle: {
+    fontSize: "13px",
+    color: "var(--text-secondary)",
+    margin: "4px 0 24px 0",
+  },
   searchInput: {
     padding: "10px 16px",
     borderRadius: "8px",
@@ -428,11 +509,22 @@ const styles = {
     border: "1px solid rgba(255,255,255,0.03)",
     borderRadius: "12px",
     padding: "20px",
+    display: "flex",
+    gap: "16px",
+    alignItems: "center",
+  },
+  dishImage: {
+    width: "80px",
+    height: "80px",
+    objectFit: "cover",
+    borderRadius: "8px",
+    border: "1px solid rgba(255,255,255,0.05)",
   },
   menuContent: {
     display: "flex",
     flexDirection: "column",
     gap: "6px",
+    flex: 1,
   },
   menuHeaderRow: {
     display: "flex",
@@ -455,6 +547,71 @@ const styles = {
     fontSize: "13px",
     color: "var(--text-secondary)",
     lineHeight: "1.4",
+  },
+  heatmapWrapper: {
+    display: "flex",
+    gap: "16px",
+    alignItems: "flex-end",
+    overflowX: "auto",
+    paddingBottom: "10px",
+  },
+  heatmapDaysCol: {
+    display: "flex",
+    flexDirection: "column",
+    gap: "12px",
+    paddingBottom: "4px",
+    marginRight: "8px",
+  },
+  heatmapDayName: {
+    fontSize: "12px",
+    fontWeight: "600",
+    color: "var(--text-secondary)",
+    height: "36px",
+    display: "flex",
+    alignItems: "center",
+    textTransform: "uppercase",
+  },
+  heatmapGrid: {
+    display: "flex",
+    flexDirection: "column",
+    gap: "8px",
+    flex: 1,
+  },
+  heatmapHeaderRow: {
+    display: "flex",
+    justifyContent: "space-between",
+    paddingLeft: "4px",
+    marginBottom: "4px",
+  },
+  heatmapHourLabel: {
+    fontSize: "11px",
+    fontWeight: "600",
+    color: "var(--text-muted)",
+    width: "60px",
+    textAlign: "center",
+  },
+  heatmapMatrix: {
+    display: "flex",
+    flexDirection: "column",
+    gap: "12px",
+  },
+  heatmapRow: {
+    display: "flex",
+    justifyContent: "space-between",
+    gap: "12px",
+  },
+  heatmapCell: {
+    flex: 1,
+    height: "36px",
+    minWidth: "60px",
+    borderRadius: "6px",
+    display: "flex",
+    justifyContent: "center",
+    alignItems: "center",
+    fontSize: "11px",
+    fontWeight: "700",
+    transition: "all 0.2s ease",
+    cursor: "pointer",
   },
   doubleGrid: {
     display: "grid",
@@ -486,6 +643,15 @@ const styles = {
   label: {
     fontSize: "14px",
     color: "var(--text-secondary)",
+  },
+  verifiedNotice: {
+    fontSize: "12px",
+    color: "var(--accent-gold)",
+    backgroundColor: "rgba(226, 184, 85, 0.05)",
+    padding: "8px 12px",
+    borderRadius: "8px",
+    margin: 0,
+    border: "1px dashed rgba(226, 184, 85, 0.2)",
   },
   input: {
     padding: "12px 16px",

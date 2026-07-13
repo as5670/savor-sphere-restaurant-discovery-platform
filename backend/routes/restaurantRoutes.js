@@ -104,6 +104,15 @@ router.post("/:id/reviews", authMiddleware, async (req, res) => {
     }
 
     try {
+        // Check if the user has a verified reservation at this restaurant to prevent fake reviews
+        const [reservations] = await db.query(
+            "SELECT id FROM reservation1 WHERE user_id = ? AND restaurant_id = ? LIMIT 1",
+            [userId, restaurantId]
+        );
+        if (reservations.length === 0) {
+            return res.status(403).json({ error: "Access Denied: Only guests with a verified table reservation can review this restaurant." });
+        }
+
         // Fetch user name securely from the database using userId from JWT
         const [users] = await db.query("SELECT name FROM users WHERE id = ?", [userId]);
         if (users.length === 0) {
@@ -167,6 +176,58 @@ router.post("/:id/reservations", authMiddleware, async (req, res) => {
     } catch (err) {
         console.error("Database error:", err);
         return res.status(500).json({ error: "Database error" });
+    }
+});
+
+// ✅ Get Busy Time Predictions based on historical reservations
+router.get("/:id/busy-times", async (req, res) => {
+    const restaurantId = req.params.id;
+    try {
+        const [rows] = await db.query(
+            "SELECT date, time, guests FROM reservation1 WHERE restaurant_id = ?",
+            [restaurantId]
+        );
+
+        // Days: Sunday (0) to Saturday (6).
+        // Hours: 12 PM (12) to 10 PM (22).
+        const matrix = {};
+        const days = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
+        days.forEach(d => {
+            matrix[d] = {};
+            for (let h = 12; h <= 22; h++) {
+                matrix[d][h] = 0;
+            }
+        });
+
+        rows.forEach(r => {
+            try {
+                const dateObj = new Date(r.date);
+                const dayName = days[dateObj.getDay()];
+                const hour = parseInt(r.time.split(":")[0]);
+                if (dayName && hour >= 12 && hour <= 22) {
+                    matrix[dayName][hour] += Number(r.guests);
+                }
+            } catch (e) {
+                // Ignore parse errors
+            }
+        });
+
+        // Normalize scores to percentage (capacity threshold 20 guests per hour)
+        const capacity = 20;
+        const normalized = {};
+        days.forEach(d => {
+            normalized[d] = {};
+            for (let h = 12; h <= 22; h++) {
+                const score = matrix[d][h];
+                const percentage = Math.min(Math.round((score / capacity) * 100), 100);
+                normalized[d][h] = percentage;
+            }
+        });
+
+        res.json(normalized);
+    } catch (err) {
+        console.error("Database error:", err);
+        return res.status(500).json({ error: "Failed to load busy time statistics" });
     }
 });
 
