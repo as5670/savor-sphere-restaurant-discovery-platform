@@ -38,3 +38,19 @@ app.get('/api/restaurants/:id/menu', async (req, res) => {
         return res.status(500).json({ error: 'Failed to fetch dishes' });
     }
 });
+
+// Database Diagnostic Status Check
+app.get('/api/db-status', async (req, res) => {
+    try {
+        const [tables] = await db.query("SHOW TABLES");
+        const status = {};
+        for (const row of tables) {
+            const tableName = Object.values(row)[0];
+            const [[{ count }]] = await db.query(`SELECT COUNT(*) as count FROM \`${tableName}\``);
+            status[tableName] = count;
+        }
+        res.json({ connection: "success", tables: status });
+    } catch (err) {
+        res.status(500).json({ connection: "failed", error: err.message });
+    }
+});

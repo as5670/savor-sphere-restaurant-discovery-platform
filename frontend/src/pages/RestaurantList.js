@@ -19,8 +19,8 @@ const mockRestaurants = [
     cuisine: 'Italian',
     price_ranges: '$$',
     rating: 4.5,
-    latitude: 51.505,
-    longitude: -0.09,
+    latitude: 40.7128,
+    longitude: -74.0060,
     distance: 2
   },
   {
@@ -29,8 +29,8 @@ const mockRestaurants = [
     cuisine: 'Mexican',
     price_ranges: '$',
     rating: 4.2,
-    latitude: 51.51,
-    longitude: -0.1,
+    latitude: 40.7250,
+    longitude: -74.0100,
     distance: 5
   }
 ];
@@ -41,29 +41,15 @@ const RestaurantList = () => {
   const [userLocation, setUserLocation] = useState(null);
   const [loading, setLoading] = useState(true);
 
-  // Get user's current location
-  useEffect(() => {
-    navigator.geolocation.getCurrentPosition(
-      (position) => {
-        setUserLocation({
-          latitude: position.coords.latitude,
-          longitude: position.coords.longitude
-        });
-      },
-      (err) => {
-        console.error("Geolocation error:", err);
-        setUserLocation({ latitude: 40.7128, longitude: -74.0060 }); // fallback to NYC
-      }
-    );
-  }, []);
-
   // Fetch from backend
-  const fetchRestaurants = () => {
+  const fetchRestaurants = (loc) => {
     setLoading(true);
     const queryParams = new URLSearchParams();
     if (filters.cuisine) queryParams.append("cuisine", filters.cuisine);
     if (filters.price) queryParams.append("price", filters.price);
     if (filters.rating) queryParams.append("rating", filters.rating);
+
+    const activeLoc = loc !== undefined ? loc : userLocation;
 
     fetch(`${API_BASE_URL}/api/restaurants?${queryParams.toString()}`)
       .then(res => {
@@ -73,11 +59,11 @@ const RestaurantList = () => {
       .then(data => {
         const withDistance = data.map((r) => ({
           ...r,
-          distance: userLocation
-            ? calculateDistance(userLocation.latitude, userLocation.longitude, Number(r.latitude), Number(r.longitude))
+          distance: activeLoc
+            ? calculateDistance(activeLoc.latitude, activeLoc.longitude, Number(r.latitude), Number(r.longitude))
             : null
         }));
-        const unique = Array.from(new Map(withDistance.map(item => [item.id, item])).values());
+        const unique = Array.from(withDistance.reduce((map, item) => map.set(item.id, item), new Map()).values());
         setRestaurants(unique);
       })
       .catch(err => {
@@ -89,12 +75,30 @@ const RestaurantList = () => {
       });
   };
 
+  // Get user's current location and fetch immediately
   useEffect(() => {
-    if (userLocation) {
-      fetchRestaurants();
-    }
+    // Initial fetch on mount
+    fetchRestaurants(null);
+
+    navigator.geolocation.getCurrentPosition(
+      (position) => {
+        const loc = {
+          latitude: position.coords.latitude,
+          longitude: position.coords.longitude
+        };
+        setUserLocation(loc);
+        fetchRestaurants(loc);
+      },
+      (err) => {
+        console.error("Geolocation error or denied:", err);
+        // default fallback location (NYC)
+        const fallbackLoc = { latitude: 40.7128, longitude: -74.0060 };
+        setUserLocation(fallbackLoc);
+        fetchRestaurants(fallbackLoc);
+      }
+    );
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [userLocation]);
+  }, []);
 
   const handleFilterChange = (e) => {
     const updated = { ...filters, [e.target.name]: e.target.value };
@@ -115,7 +119,7 @@ const RestaurantList = () => {
               ? calculateDistance(userLocation.latitude, userLocation.longitude, Number(r.latitude), Number(r.longitude))
               : null
           }));
-          const unique = Array.from(new Map(withDistance.map(item => [item.id, item])).values());
+          const unique = Array.from(withDistance.reduce((map, item) => map.set(item.id, item), new Map()).values());
           setRestaurants(unique);
         })
         .catch(err => {
