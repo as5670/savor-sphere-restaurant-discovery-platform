@@ -248,7 +248,6 @@ const styles = {
     cancelBtn: {
         padding: "8px 16px",
         borderRadius: "8px",
-        border: "none",
         backgroundColor: "rgba(255, 95, 87, 0.1)",
         color: "var(--accent-crimson)",
         fontSize: "13px",
