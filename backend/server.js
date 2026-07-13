@@ -6,6 +6,8 @@ const userRoutes = require("./routes/userRoutes");
 const restaurantRoutes = require("./routes/restaurantRoutes");
 const reservationRoutes = require("./routes/reservationRoutes");  // ✅ Make sure this is correct!
 
+const dbInit = require("./dbInit");
+
 dotenv.config();
 const app = express();
 
@@ -18,8 +20,9 @@ app.use("/api/restaurants", restaurantRoutes);
 app.use("/api/reservations", reservationRoutes); // ✅ Corrected!
 
 // ✅ Start Server
-app.listen(5000, () => {
+app.listen(5000, async () => {
     console.log("🚀 Backend running on http://localhost:5000");
+    await dbInit();
 });
 
 // Get menu/dishes for a restaurant
