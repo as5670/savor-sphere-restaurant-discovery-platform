@@ -23,15 +23,15 @@ app.listen(5000, () => {
 });
 
 // Get menu/dishes for a restaurant
-app.get('/api/restaurants/:id/menu', (req, res) => {
+app.get('/api/restaurants/:id/menu', async (req, res) => {
     const restaurantId = req.params.id;
     const query = 'SELECT * FROM dishes WHERE restaurant_id = ?';
 
-    db.query(query, [restaurantId], (err, results) => {
-        if (err) {
-            console.error('Error fetching dishes:', err);
-            return res.status(500).json({ error: 'Failed to fetch dishes' });
-        }
+    try {
+        const [results] = await db.query(query, [restaurantId]);
         res.json(results);
-    });
+    } catch (err) {
+        console.error('Error fetching dishes:', err);
+        return res.status(500).json({ error: 'Failed to fetch dishes' });
+    }
 });
