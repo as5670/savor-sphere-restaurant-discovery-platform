@@ -2,7 +2,7 @@ import React, { useState } from "react";
 import { useNavigate, Link } from "react-router-dom";
 import { API_BASE_URL } from "../config";
 
-const Register = () => {
+const Register = ({ onRegisterSuccess }) => {
     const [name, setName] = useState("");
     const [email, setEmail] = useState("");
     const [password, setPassword] = useState("");
@@ -21,8 +21,13 @@ const Register = () => {
 
             const data = await response.json();
             if (response.status === 201) {
-                alert("Account created successfully! Please sign in.");
-                navigate("/login");
+                if (onRegisterSuccess && data.token && data.user) {
+                    onRegisterSuccess(data.user, data.token);
+                    navigate("/restaurants");
+                } else {
+                    alert("Account created successfully! Please sign in.");
+                    navigate("/login");
+                }
             } else {
                 alert(data.message || "Registration failed.");
             }

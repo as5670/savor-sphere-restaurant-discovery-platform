@@ -69,17 +69,23 @@ async function initializeDatabase() {
       )
     `);
 
-    // Seed mock data if restaurants table is empty
+    // Check restaurant count to determine if we should clear and re-seed 7 premium restaurants
     const [existingRestaurants] = await db.query("SELECT COUNT(*) as count FROM restaurants");
-    if (existingRestaurants[0].count === 0) {
-      console.log("🌱 Seeding mock restaurant and dish data...");
+    if (existingRestaurants[0].count < 5) {
+      console.log("🌱 Seeding/Resetting premium restaurant and dish database (7 Cuisines)...");
       
+      // Safe truncate under foreign keys
+      await db.query("SET FOREIGN_KEY_CHECKS = 0");
+      await db.query("TRUNCATE TABLE dishes");
+      await db.query("TRUNCATE TABLE restaurants");
+      await db.query("SET FOREIGN_KEY_CHECKS = 1");
+
       const restaurants = [
         {
           name: "Trattoria Bella",
           cuisine: "Italian",
           price_ranges: "$$",
-          rating: 4.5,
+          rating: 4.6,
           latitude: 40.7128,
           longitude: -74.0060,
           image_url: "https://images.unsplash.com/photo-1555396273-367ea4eb4db5?w=600"
@@ -101,6 +107,42 @@ async function initializeDatabase() {
           latitude: 40.7300,
           longitude: -73.9950,
           image_url: "https://images.unsplash.com/photo-1568901346375-23c9450c58cd?w=600"
+        },
+        {
+          name: "La Maison",
+          cuisine: "French",
+          price_ranges: "$$$",
+          rating: 4.9,
+          latitude: 40.7410,
+          longitude: -74.0020,
+          image_url: "https://images.unsplash.com/photo-1514933651103-005eec06c04b?w=600"
+        },
+        {
+          name: "Taj Mahal Palace",
+          cuisine: "Indian",
+          price_ranges: "$$",
+          rating: 4.7,
+          latitude: 40.7190,
+          longitude: -73.9920,
+          image_url: "https://images.unsplash.com/photo-1585938338392-50a59970d2ee?w=600"
+        },
+        {
+          name: "El Camino",
+          cuisine: "Mexican",
+          price_ranges: "$$",
+          rating: 4.4,
+          latitude: 40.7340,
+          longitude: -74.0080,
+          image_url: "https://images.unsplash.com/photo-1565299624946-b28f40a0ae38?w=600"
+        },
+        {
+          name: "Golden Dragon",
+          cuisine: "Chinese",
+          price_ranges: "$$",
+          rating: 4.3,
+          latitude: 40.7150,
+          longitude: -73.9980,
+          image_url: "https://images.unsplash.com/photo-1563245372-f21724e3856d?w=600"
         }
       ];
 
@@ -112,14 +154,26 @@ async function initializeDatabase() {
         const insertId = result.insertId;
 
         if (r.cuisine === "Italian") {
-          await db.query("INSERT INTO dishes (restaurant_id, name, price, description) VALUES (?, 'Margherita Pizza', 14.99, 'Classic tomato, mozzarella, and fresh basil.')", [insertId]);
-          await db.query("INSERT INTO dishes (restaurant_id, name, price, description) VALUES (?, 'Fettuccine Alfredo', 16.99, 'Creamy parmesan sauce with fettuccine pasta.')", [insertId]);
+          await db.query("INSERT INTO dishes (restaurant_id, name, price, description) VALUES (?, 'Margherita Pizza', 14.99, 'Classic fresh mozzarella, plum tomato, and sweet basil leaves on stone-baked crust.')", [insertId]);
+          await db.query("INSERT INTO dishes (restaurant_id, name, price, description) VALUES (?, 'Fettuccine Alfredo', 16.99, 'Rich, creamy parmesan and white wine butter sauce served over house-made pasta.')", [insertId]);
         } else if (r.cuisine === "Japanese") {
-          await db.query("INSERT INTO dishes (restaurant_id, name, price, description) VALUES (?, 'Signature Sushi Platter', 29.99, 'Chef selection of 10 pieces of premium sushi.')", [insertId]);
-          await db.query("INSERT INTO dishes (restaurant_id, name, price, description) VALUES (?, 'Tonkotsu Ramen', 15.99, 'Rich pork bone broth, chashu pork, and soft egg.')", [insertId]);
+          await db.query("INSERT INTO dishes (restaurant_id, name, price, description) VALUES (?, 'Signature Sushi Platter', 29.99, 'Premium chef selection of nigiri, sashimi, and custom house rolls served with real wasabi.')", [insertId]);
+          await db.query("INSERT INTO dishes (restaurant_id, name, price, description) VALUES (?, 'Tonkotsu Ramen', 15.99, '48-hour slow-cooked rich pork bone broth with chashu, nori, bamboo shoots, and a soft-boiled egg.')", [insertId]);
         } else if (r.cuisine === "American") {
-          await db.query("INSERT INTO dishes (restaurant_id, name, price, description) VALUES (?, 'Classic Cheeseburger', 9.99, 'Beef patty, cheddar, lettuce, tomato, special sauce.')", [insertId]);
-          await db.query("INSERT INTO dishes (restaurant_id, name, price, description) VALUES (?, 'Truffle Fries', 5.99, 'Crispy fries tossed in truffle oil and parmesan.')", [insertId]);
+          await db.query("INSERT INTO dishes (restaurant_id, name, price, description) VALUES (?, 'Classic Cheeseburger', 9.99, 'Premium dry-aged beef patty, double cheddar, caramelized onions, and house special sauce.')", [insertId]);
+          await db.query("INSERT INTO dishes (restaurant_id, name, price, description) VALUES (?, 'Truffle Fries', 5.99, 'Hand-cut russet potatoes double-fried and tossed in white truffle oil, rosemary, and aged parmesan.')", [insertId]);
+        } else if (r.cuisine === "French") {
+          await db.query("INSERT INTO dishes (restaurant_id, name, price, description) VALUES (?, 'Coq au Vin', 24.99, 'Traditional French chicken braised in red Burgundy wine, mushrooms, and lardon.')", [insertId]);
+          await db.query("INSERT INTO dishes (restaurant_id, name, price, description) VALUES (?, 'Crème Brûlée', 8.99, 'Rich custard base topped with a texturally contrastive layer of hardened caramelized sugar.')", [insertId]);
+        } else if (r.cuisine === "Indian") {
+          await db.query("INSERT INTO dishes (restaurant_id, name, price, description) VALUES (?, 'Butter Chicken', 16.99, 'Tender tandoori grilled chicken cooked in a rich, velvety spiced tomato and cashew butter gravy.')", [insertId]);
+          await db.query("INSERT INTO dishes (restaurant_id, name, price, description) VALUES (?, 'Garlic Naan', 3.99, 'Fresh leavened flatbread baked in clay oven topped with garlic, cilantro, and pure ghee.')", [insertId]);
+        } else if (r.cuisine === "Mexican") {
+          await db.query("INSERT INTO dishes (restaurant_id, name, price, description) VALUES (?, 'Street Taco Platter', 12.99, 'Selection of premium carne asada, barbacoa, and al pastor tacos served on hand-pressed corn tortillas.')", [insertId]);
+          await db.query("INSERT INTO dishes (restaurant_id, name, price, description) VALUES (?, 'Churros with Chocolate', 6.99, 'Crispy golden fried dough dusted with cinnamon sugar and served with dark Oaxacan dipping chocolate.')", [insertId]);
+        } else if (r.cuisine === "Chinese") {
+          await db.query("INSERT INTO dishes (restaurant_id, name, price, description) VALUES (?, 'Peking Duck', 28.99, 'Crispy skin roasted duck carved table-side, served with thin pancakes, hoisin sauce, and scallions.')", [insertId]);
+          await db.query("INSERT INTO dishes (restaurant_id, name, price, description) VALUES (?, 'Dim Sum Basket', 14.99, 'Assorted handcrafted steamed dumplings including har gow (shrimp) and shao mai (pork).')", [insertId]);
         }
       }
       console.log("✅ Seeding completed!");

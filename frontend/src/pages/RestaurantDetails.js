@@ -268,7 +268,12 @@ const RestaurantDetails = ({ user }) => {
                 reviews.map((review, index) => (
                   <div key={index} style={styles.reviewCard}>
                     <div style={styles.reviewHeader}>
-                      <span style={styles.reviewAuthor}>{review.user_name}</span>
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                        <span style={styles.reviewAuthor}>{review.user_name}</span>
+                        {review.rating === 5 && <span style={styles.sentimentBadgeExceptional}>Exceptional</span>}
+                        {review.rating === 4 && <span style={styles.sentimentBadgeRecommended}>Highly Recommended</span>}
+                        {review.rating <= 3 && <span style={styles.sentimentBadgeAverage}>Average Experience</span>}
+                      </div>
                       <span style={styles.reviewRating}><FiStar style={{ fill: "var(--accent-gold)", color: "var(--accent-gold)" }} /> {review.rating}</span>
                     </div>
                     <p style={styles.reviewText}>"{review.comment}"</p>
@@ -623,6 +628,39 @@ const styles = {
     color: "var(--text-secondary)",
     lineHeight: "1.5",
     fontStyle: "italic",
+  },
+  sentimentBadgeExceptional: {
+    alignSelf: "flex-start",
+    fontSize: "10px",
+    fontWeight: "600",
+    color: "var(--accent-gold)",
+    backgroundColor: "rgba(226, 184, 85, 0.12)",
+    padding: "2px 8px",
+    borderRadius: "12px",
+    textTransform: "uppercase",
+    letterSpacing: "0.5px",
+  },
+  sentimentBadgeRecommended: {
+    alignSelf: "flex-start",
+    fontSize: "10px",
+    fontWeight: "600",
+    color: "var(--text-primary)",
+    backgroundColor: "rgba(255, 255, 255, 0.08)",
+    padding: "2px 8px",
+    borderRadius: "12px",
+    textTransform: "uppercase",
+    letterSpacing: "0.5px",
+  },
+  sentimentBadgeAverage: {
+    alignSelf: "flex-start",
+    fontSize: "10px",
+    fontWeight: "600",
+    color: "var(--text-muted)",
+    backgroundColor: "rgba(255, 255, 255, 0.03)",
+    padding: "2px 8px",
+    borderRadius: "12px",
+    textTransform: "uppercase",
+    letterSpacing: "0.5px",
   },
   subheading: {
     fontSize: "16px",

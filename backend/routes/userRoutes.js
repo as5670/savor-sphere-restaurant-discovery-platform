@@ -17,8 +17,17 @@ router.post("/register", async (req, res) => {
         // Hash password before storing
         const hashedPassword = await bcrypt.hash(password, 10);
         const query = "INSERT INTO users (name, email, password) VALUES (?, ?, ?)";
-        await db.query(query, [name, email, hashedPassword]);
-        res.status(201).json({ message: "User registered successfully" });
+        const [result] = await db.query(query, [name, email, hashedPassword]);
+        const insertId = result.insertId;
+
+        // Generate JWT token for auto-login
+        const token = jwt.sign({ userId: insertId }, process.env.JWT_SECRET, { expiresIn: "1h" });
+
+        res.status(201).json({ 
+            message: "User registered successfully", 
+            token,
+            user: { id: insertId, name, email }
+        });
     } catch (err) {
         console.error("Registration error:", err);
         return res.status(500).json({ message: "Database error", error: err });
