@@ -3,36 +3,42 @@ const db = require("../config");
 const authMiddleware = require("../authMiddleware");
 const router = express.Router();
 
-// ✅ Get All Restaurants with Advanced Filters + Distance Calculation
+// ✅ Get All Restaurants with Advanced Filters + Distance Calculation + Dish Search
 router.get("/", async (req, res) => {
-    const { cuisine, price, rating, maxDistance, userLat, userLng } = req.query;
+    const { cuisine, price, rating, maxDistance, userLat, userLng, q } = req.query;
 
     let query = `
-        SELECT *, (
+        SELECT DISTINCT r.id, r.name, r.cuisine, r.price_ranges, r.rating, r.latitude, r.longitude, r.image_url, (
             6371 * acos(
-                cos(radians(?)) * cos(radians(latitude)) *
-                cos(radians(longitude) - radians(?)) +
-                sin(radians(?)) * sin(radians(latitude))
+                cos(radians(?)) * cos(radians(r.latitude)) *
+                cos(radians(r.longitude) - radians(?)) +
+                sin(radians(?)) * sin(radians(r.latitude))
             )
         ) AS distance
-        FROM restaurants
+        FROM restaurants r
+        LEFT JOIN dishes d ON r.id = d.restaurant_id
         WHERE 1=1
     `;
     const params = [userLat || 0, userLng || 0, userLat || 0];
 
     if (cuisine) {
-        query += " AND LOWER(cuisine) LIKE ?";
+        query += " AND LOWER(r.cuisine) LIKE ?";
         params.push(`%${cuisine.toLowerCase()}%`);
     }
 
     if (price) {
-        query += " AND price_ranges = ?";
+        query += " AND r.price_ranges = ?";
         params.push(price);
     }
 
     if (rating) {
-        query += " AND rating >= ?";
+        query += " AND r.rating >= ?";
         params.push(rating);
+    }
+
+    if (q) {
+        query += " AND (LOWER(r.name) LIKE ? OR LOWER(r.cuisine) LIKE ? OR LOWER(d.name) LIKE ?)";
+        params.push(`%${q.toLowerCase()}%`, `%${q.toLowerCase()}%`, `%${q.toLowerCase()}%`);
     }
 
     // Wrap and filter by distance if provided
@@ -179,52 +185,42 @@ router.post("/:id/reservations", authMiddleware, async (req, res) => {
     }
 });
 
-// ✅ Get Busy Time Predictions based on historical reservations
+// ✅ Get Busy Time Predictions based on historical reservations (weekly average)
 router.get("/:id/busy-times", async (req, res) => {
     const restaurantId = req.params.id;
     try {
         const [rows] = await db.query(
-            "SELECT date, time, guests FROM reservation1 WHERE restaurant_id = ?",
+            "SELECT time, guests FROM reservation1 WHERE restaurant_id = ?",
             [restaurantId]
         );
 
-        // Days: Sunday (0) to Saturday (6).
-        // Hours: 12 PM (12) to 10 PM (22).
-        const matrix = {};
-        const days = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
-        days.forEach(d => {
-            matrix[d] = {};
-            for (let h = 12; h <= 22; h++) {
-                matrix[d][h] = 0;
-            }
-        });
+        const hourSums = { 12: 0, 14: 0, 16: 0, 18: 0, 20: 0, 22: 0 };
 
         rows.forEach(r => {
             try {
-                const dateObj = new Date(r.date);
-                const dayName = days[dateObj.getDay()];
-                const hour = parseInt(r.time.split(":")[0]);
-                if (dayName && hour >= 12 && hour <= 22) {
-                    matrix[dayName][hour] += Number(r.guests);
-                }
+                const hourVal = parseInt(r.time.split(":")[0]);
+                let key = 12;
+                if (hourVal >= 21) key = 22;
+                else if (hourVal >= 19) key = 20;
+                else if (hourVal >= 17) key = 18;
+                else if (hourVal >= 15) key = 16;
+                else if (hourVal >= 13) key = 14;
+                
+                hourSums[key] += Number(r.guests);
             } catch (e) {
                 // Ignore parse errors
             }
         });
 
-        // Normalize scores to percentage (capacity threshold 20 guests per hour)
-        const capacity = 20;
-        const normalized = {};
-        days.forEach(d => {
-            normalized[d] = {};
-            for (let h = 12; h <= 22; h++) {
-                const score = matrix[d][h];
-                const percentage = Math.min(Math.round((score / capacity) * 100), 100);
-                normalized[d][h] = percentage;
-            }
+        const capacity = 20; // assumed max guests capacity per hour
+        const averages = {};
+        Object.keys(hourSums).forEach(h => {
+            const sum = hourSums[h];
+            const percentage = Math.min(Math.round((sum / capacity) * 100), 100);
+            averages[h] = percentage;
         });
 
-        res.json(normalized);
+        res.json(averages);
     } catch (err) {
         console.error("Database error:", err);
         return res.status(500).json({ error: "Failed to load busy time statistics" });

@@ -211,58 +211,33 @@ const RestaurantDetails = ({ user }) => {
           )}
         </section>
 
-        {/* Busy-Times Prediction Heatmap */}
+        {/* Busy-Times Prediction Bar Chart */}
         <section style={styles.section} className="glass-card">
-          <h2 style={styles.sectionTitle}>Demand & Occupancy Heatmap</h2>
-          <p style={styles.sectionSubtitle}>Real-time historical occupancy predictions. Gold slots indicate high-booking hours.</p>
+          <h2 style={styles.sectionTitle}>Demand & Occupancy Trends</h2>
+          <p style={styles.sectionSubtitle}>Average hourly reservation levels. Gold bars indicate peak dining hours.</p>
           
-          <div style={styles.heatmapWrapper}>
-            <div style={styles.heatmapDaysCol}>
-              {["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"].map(day => (
-                <div key={day} style={styles.heatmapDayName}>{day.substring(0, 3)}</div>
-              ))}
-            </div>
-            <div style={styles.heatmapGrid}>
-              <div style={styles.heatmapHeaderRow}>
-                {[12, 14, 16, 18, 20, 22].map(hour => (
-                  <div key={hour} style={styles.heatmapHourLabel}>{hour > 12 ? `${hour - 12} PM` : `${hour} PM`}</div>
-                ))}
-              </div>
-              <div style={styles.heatmapMatrix}>
-                {["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"].map(day => (
-                  <div key={day} style={styles.heatmapRow}>
-                    {[12, 14, 16, 18, 20, 22].map(hour => {
-                      const busyVal = (busyTimes[day] && busyTimes[day][hour]) || 0;
-                      let cellColor = "rgba(255, 255, 255, 0.03)";
-                      let textColor = "var(--text-muted)";
-                      
-                      if (busyVal > 50) {
-                        cellColor = `rgba(226, 184, 85, ${busyVal / 100})`;
-                        textColor = "var(--bg-primary)";
-                      } else if (busyVal > 0) {
-                        cellColor = `rgba(255, 255, 255, ${0.05 + (busyVal / 150)})`;
-                        textColor = "var(--text-primary)";
-                      }
-                      
-                      return (
-                        <div 
-                          key={hour} 
-                          style={{
-                            ...styles.heatmapCell,
-                            backgroundColor: cellColor,
-                            color: textColor,
-                            boxShadow: busyVal > 70 ? "0 0 10px rgba(226,184,85,0.3)" : "none"
-                          }}
-                          title={`${day} at ${hour > 12 ? `${hour - 12} PM` : `${hour} PM`}: ${busyVal}% booked`}
-                        >
-                          {busyVal}%
-                        </div>
-                      );
-                    })}
+          <div style={styles.barChartContainer}>
+            {[12, 14, 16, 18, 20, 22].map(hour => {
+              const occupancy = busyTimes[hour] || 0;
+              const isPeak = occupancy > 60;
+              return (
+                <div key={hour} style={styles.barColumn}>
+                  <div style={styles.barTrack}>
+                    <div 
+                      style={{
+                        ...styles.barFill,
+                        height: `${occupancy || 5}%`,
+                        backgroundColor: isPeak ? "var(--accent-gold)" : "rgba(255, 255, 255, 0.08)",
+                        boxShadow: isPeak ? "0 0 15px rgba(226, 184, 85, 0.4)" : "none"
+                      }}
+                    >
+                      {occupancy > 0 && <span style={styles.barValText}>{occupancy}%</span>}
+                    </div>
                   </div>
-                ))}
-              </div>
-            </div>
+                  <span style={styles.barLabel}>{hour > 12 ? `${hour - 12} PM` : `${hour} PM`}</span>
+                </div>
+              );
+            })}
           </div>
         </section>
 
@@ -548,70 +523,56 @@ const styles = {
     color: "var(--text-secondary)",
     lineHeight: "1.4",
   },
-  heatmapWrapper: {
+  barChartContainer: {
     display: "flex",
-    gap: "16px",
+    justifyContent: "space-around",
     alignItems: "flex-end",
-    overflowX: "auto",
-    paddingBottom: "10px",
+    height: "220px",
+    padding: "20px 10px",
+    backgroundColor: "rgba(0, 0, 0, 0.15)",
+    border: "1px solid rgba(255,255,255,0.03)",
+    borderRadius: "12px",
+    marginTop: "16px",
   },
-  heatmapDaysCol: {
+  barColumn: {
     display: "flex",
     flexDirection: "column",
-    gap: "12px",
-    paddingBottom: "4px",
-    marginRight: "8px",
-  },
-  heatmapDayName: {
-    fontSize: "12px",
-    fontWeight: "600",
-    color: "var(--text-secondary)",
-    height: "36px",
-    display: "flex",
     alignItems: "center",
-    textTransform: "uppercase",
-  },
-  heatmapGrid: {
-    display: "flex",
-    flexDirection: "column",
-    gap: "8px",
-    flex: 1,
-  },
-  heatmapHeaderRow: {
-    display: "flex",
-    justifyContent: "space-between",
-    paddingLeft: "4px",
-    marginBottom: "4px",
-  },
-  heatmapHourLabel: {
-    fontSize: "11px",
-    fontWeight: "600",
-    color: "var(--text-muted)",
+    gap: "12px",
+    height: "100%",
     width: "60px",
-    textAlign: "center",
   },
-  heatmapMatrix: {
+  barTrack: {
+    flex: 1,
+    width: "32px",
+    backgroundColor: "rgba(255, 255, 255, 0.02)",
+    borderRadius: "20px",
     display: "flex",
     flexDirection: "column",
-    gap: "12px",
+    justifyContent: "flex-end",
+    overflow: "hidden",
+    border: "1px solid rgba(255,255,255,0.04)",
   },
-  heatmapRow: {
-    display: "flex",
-    justifyContent: "space-between",
-    gap: "12px",
-  },
-  heatmapCell: {
-    flex: 1,
-    height: "36px",
-    minWidth: "60px",
-    borderRadius: "6px",
+  barFill: {
+    width: "100%",
+    borderRadius: "20px",
     display: "flex",
     justifyContent: "center",
     alignItems: "center",
-    fontSize: "11px",
+    transition: "height 0.8s cubic-bezier(0.4, 0, 0.2, 1)",
+    position: "relative",
+  },
+  barValText: {
+    fontSize: "9px",
     fontWeight: "700",
-    transition: "all 0.2s ease",
-    cursor: "pointer",
+    color: "#090a0f",
+    position: "absolute",
+    top: "8px",
+  },
+  barLabel: {
+    fontSize: "11px",
+    fontWeight: "600",
+    color: "var(--text-secondary)",
   },
   doubleGrid: {
     display: "grid",

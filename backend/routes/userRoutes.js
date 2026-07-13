@@ -108,4 +108,47 @@ router.get("/:id/reviews", async (req, res) => {
     }
 });
 
+// ✅ Get User Recommendations (Simple Collaborative Filtering based on past booking cuisines)
+router.get("/:id/recommendations", async (req, res) => {
+    const userId = req.params.id;
+    try {
+        // Find cuisines user has previously booked
+        const [userCuisines] = await db.query(
+            "SELECT DISTINCT r.cuisine FROM reservation1 res JOIN restaurants r ON res.restaurant_id = r.id WHERE res.user_id = ?",
+            [userId]
+        );
+
+        let query = "SELECT * FROM restaurants";
+        const params = [];
+
+        if (userCuisines.length > 0) {
+            // Find restaurants of the same cuisines that the user hasn't reserved yet, sorted by rating
+            const cuisines = userCuisines.map(c => c.cuisine);
+            query = "SELECT * FROM restaurants WHERE cuisine IN (?) AND id NOT IN (SELECT DISTINCT restaurant_id FROM reservation1 WHERE user_id = ?) ORDER BY rating DESC LIMIT 4";
+            params.push(cuisines, userId);
+        } else {
+            // Fallback: recommend top 4 restaurants overall
+            query = "SELECT * FROM restaurants ORDER BY rating DESC LIMIT 4";
+        }
+
+        const [results] = await db.query(query, params);
+        
+        // Pad with top-rated fallback if collaborative matches are sparse
+        if (results.length < 3 && userCuisines.length > 0) {
+            const [fallbackResults] = await db.query(
+                "SELECT * FROM restaurants WHERE id NOT IN (SELECT DISTINCT restaurant_id FROM reservation1 WHERE user_id = ?) ORDER BY rating DESC LIMIT 4",
+                [userId]
+            );
+            const combined = [...results, ...fallbackResults];
+            const unique = Array.from(combined.reduce((map, item) => map.set(item.id, item), new Map()).values()).slice(0, 4);
+            return res.json(unique);
+        }
+
+        res.json(results);
+    } catch (err) {
+        console.error("Database error:", err);
+        return res.status(500).json({ error: "Failed to load recommendations" });
+    }
+});
+
 module.exports = router;

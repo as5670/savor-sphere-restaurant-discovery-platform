@@ -40,7 +40,7 @@ function App() {
         <Route path="/" element={<Home />} />
         <Route path="/login" element={<Login onLoginSuccess={handleLoginSuccess} />} />
         <Route path="/register" element={<Register onRegisterSuccess={handleLoginSuccess} />} />
-        <Route path="/restaurants" element={<RestaurantList />} />
+        <Route path="/restaurants" element={<RestaurantList user={user} />} />
         <Route path="/restaurants/:id" element={<RestaurantDetails user={user} />} />
         <Route path="/profile/:id" element={<UserProfile user={user} onLogout={handleLogout} />} />
       </Routes>

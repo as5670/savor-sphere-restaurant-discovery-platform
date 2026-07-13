@@ -19,8 +19,8 @@ const mockRestaurants = [
     cuisine: 'Italian',
     price_ranges: '$$',
     rating: 4.5,
-    latitude: 40.7128,
-    longitude: -74.0060,
+    latitude: 28.6139,
+    longitude: 77.2090,
     distance: 2
   },
   {
@@ -29,19 +29,33 @@ const mockRestaurants = [
     cuisine: 'Mexican',
     price_ranges: '$',
     rating: 4.2,
-    latitude: 40.7250,
-    longitude: -74.0100,
+    latitude: 28.6250,
+    longitude: 77.2200,
     distance: 5
   }
 ];
 
-const RestaurantList = () => {
+const RestaurantList = ({ user }) => {
   const [restaurants, setRestaurants] = useState([]);
-  const [filters, setFilters] = useState({ cuisine: '', price: '', distance: '', rating: '' });
+  const [recommendations, setRecommendations] = useState([]);
+  const [filters, setFilters] = useState({ cuisine: '', price: '', distance: '', rating: '', q: '' });
   const [sortBy, setSortBy] = useState('rating'); // 'rating', 'distance', 'price'
   const [userLocation, setUserLocation] = useState(null);
   const [activeCenter, setActiveCenter] = useState(null);
   const [loading, setLoading] = useState(true);
+
+  // Fetch recommendations based on past reservation cuisines
+  const fetchRecommendations = async () => {
+    if (!user) return;
+    try {
+      const res = await fetch(`${API_BASE_URL}/api/users/${user.id}/recommendations`);
+      if (res.ok) {
+        setRecommendations(await res.json());
+      }
+    } catch (err) {
+      console.error("Error loading recommendations", err);
+    }
+  };
 
   // Fetch from backend
   const fetchRestaurants = (loc) => {
@@ -50,8 +64,13 @@ const RestaurantList = () => {
     if (filters.cuisine) queryParams.append("cuisine", filters.cuisine);
     if (filters.price) queryParams.append("price", filters.price);
     if (filters.rating) queryParams.append("rating", filters.rating);
+    if (filters.q) queryParams.append("q", filters.q);
 
     const activeLoc = loc !== undefined ? loc : userLocation;
+    if (activeLoc) {
+      queryParams.append("userLat", activeLoc.latitude);
+      queryParams.append("userLng", activeLoc.longitude);
+    }
 
     fetch(`${API_BASE_URL}/api/restaurants?${queryParams.toString()}`)
       .then(res => {
@@ -80,6 +99,9 @@ const RestaurantList = () => {
   // Get user's current location and fetch immediately
   useEffect(() => {
     fetchRestaurants(null);
+    if (user) {
+      fetchRecommendations();
+    }
 
     navigator.geolocation.getCurrentPosition(
       (position) => {
@@ -92,13 +114,13 @@ const RestaurantList = () => {
       },
       (err) => {
         console.error("Geolocation error or denied:", err);
-        const fallbackLoc = { latitude: 40.7128, longitude: -74.0060 };
+        const fallbackLoc = { latitude: 28.6139, longitude: 77.2090 };
         setUserLocation(fallbackLoc);
         fetchRestaurants(fallbackLoc);
       }
     );
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [user]);
 
   const handleFilterChange = (e) => {
     const updated = { ...filters, [e.target.name]: e.target.value };
@@ -109,6 +131,12 @@ const RestaurantList = () => {
       if (updated.cuisine) queryParams.append("cuisine", updated.cuisine);
       if (updated.price) queryParams.append("price", updated.price);
       if (updated.rating) queryParams.append("rating", updated.rating);
+      if (updated.q) queryParams.append("q", updated.q);
+
+      if (userLocation) {
+        queryParams.append("userLat", userLocation.latitude);
+        queryParams.append("userLng", userLocation.longitude);
+      }
 
       fetch(`${API_BASE_URL}/api/restaurants?${queryParams.toString()}`)
         .then(res => res.json())
@@ -176,16 +204,35 @@ const RestaurantList = () => {
       <h2 style={styles.title}>Curated Fine Dining</h2>
       <p style={styles.subtitle}>Explore exquisite culinary spaces and secure reservations instantly</p>
 
+      {/* Recommended For You Section */}
+      {user && recommendations.length > 0 && (
+        <div style={styles.recommendationsContainer} className="glass-card">
+          <h3 style={styles.recHeading}>Recommended For You</h3>
+          <p style={styles.recSub}>Personalized culinary picks based on your booking profile</p>
+          <div style={styles.recGrid}>
+            {recommendations.map((r, index) => (
+              <Link key={r.id} to={`/restaurants/${r.id}`} style={styles.recCard}>
+                <img src={r.image_url || restaurantImages[index % restaurantImages.length]} alt={r.name} style={styles.recImg} />
+                <div style={styles.recMeta}>
+                  <h4 style={styles.recName}>{r.name}</h4>
+                  <span style={styles.recCuisine}>{r.cuisine} • ★{Number(r.rating).toFixed(1)}</span>
+                </div>
+              </Link>
+            ))}
+          </div>
+        </div>
+      )}
+
       {/* Filters Header Dashboard */}
       <div style={styles.filterContainer} className="glass-card">
         <div style={styles.filterField}>
-          <label style={styles.fieldLabel}>Cuisine</label>
+          <label style={styles.fieldLabel}>Search venues or dishes</label>
           <input
             type="text"
-            name="cuisine"
-            value={filters.cuisine}
+            name="q"
+            value={filters.q}
             onChange={handleFilterChange}
-            placeholder="French, Japanese, Indian..."
+            placeholder="Ramen, Butter Chicken, Pizza..."
             style={styles.input}
           />
         </div>
@@ -245,7 +292,7 @@ const RestaurantList = () => {
                   <div style={styles.cardBody}>
                     <h3 style={styles.cardTitle}>{restaurant.name}</h3>
                     <div style={styles.cardMetaGrid}>
-                      <span style={styles.metaLabel}>Rating: <strong style={{ color: "var(--accent-gold)" }}>★ {restaurant.rating}</strong></span>
+                      <span style={styles.metaLabel}>Rating: <strong style={{ color: "var(--accent-gold)" }}>★ {Number(restaurant.rating).toFixed(1)}</strong></span>
                       <span style={styles.metaLabel}>Price: <strong style={{ color: "var(--text-primary)" }}>{restaurant.price_ranges}</strong></span>
                     </div>
                     {restaurant.distance !== null && (
@@ -305,6 +352,65 @@ const styles = {
     color: 'var(--text-secondary)',
     textAlign: 'center',
     marginBottom: '40px',
+  },
+  recommendationsContainer: {
+    padding: '24px 30px',
+    borderRadius: '20px',
+    marginBottom: '30px',
+    maxWidth: '1300px',
+    margin: '0 auto 30px',
+  },
+  recHeading: {
+    fontSize: '20px',
+    fontWeight: '500',
+    margin: '0 0 4px 0',
+    color: 'var(--text-primary)',
+  },
+  recSub: {
+    fontSize: '13px',
+    color: 'var(--text-secondary)',
+    margin: '0 0 20px 0',
+  },
+  recGrid: {
+    display: 'grid',
+    gridTemplateColumns: 'repeat(auto-fill, minmax(260px, 1fr))',
+    gap: '20px',
+  },
+  recCard: {
+    display: 'flex',
+    gap: '12px',
+    alignItems: 'center',
+    padding: '12px',
+    backgroundColor: 'rgba(255,255,255,0.02)',
+    border: '1px solid rgba(255,255,255,0.04)',
+    borderRadius: '12px',
+    textDecoration: 'none',
+    transition: 'transform 0.2s ease, border-color 0.2s ease',
+    ':hover': {
+      transform: 'translateY(-2px)',
+      borderColor: 'rgba(226,184,85,0.3)',
+    }
+  },
+  recImg: {
+    width: '60px',
+    height: '60px',
+    objectFit: 'cover',
+    borderRadius: '8px',
+  },
+  recMeta: {
+    display: 'flex',
+    flexDirection: 'column',
+    gap: '4px',
+  },
+  recName: {
+    fontSize: '14px',
+    fontWeight: '500',
+    color: 'var(--text-primary)',
+    margin: 0,
+  },
+  recCuisine: {
+    fontSize: '12px',
+    color: 'var(--accent-gold)',
   },
   filterContainer: {
     display: 'flex',
