@@ -1,35 +1,49 @@
 import React, { useState } from "react";
+import { useNavigate, Link } from "react-router-dom";
+import { API_BASE_URL } from "../config";
 
-const Login = () => {
+const Login = ({ onLoginSuccess }) => {
     const [email, setEmail] = useState("");
     const [password, setPassword] = useState("");
+    const [loading, setLoading] = useState(false);
+    const navigate = useNavigate();
 
     const handleLogin = async (e) => {
         e.preventDefault();
-        const response = await fetch("http://localhost:5000/api/users/login", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ email, password }),
-        });
+        setLoading(true);
+        try {
+            const response = await fetch(`${API_BASE_URL}/api/users/login`, {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ email, password }),
+            });
 
-        const data = await response.json();
-        if (data.token) {
-            alert("Login successful!");
-            localStorage.setItem("token", data.token);
-        } else {
-            alert("Login failed. Check your credentials.");
+            const data = await response.json();
+            if (data.token) {
+                localStorage.setItem("token", data.token);
+                onLoginSuccess(data.user);
+                navigate("/restaurants");
+            } else {
+                alert(data.message || "Invalid credentials.");
+            }
+        } catch (error) {
+            console.error(error);
+            alert("Failed to connect to backend server.");
+        } finally {
+            setLoading(false);
         }
     };
 
     return (
         <div style={styles.container}>
-            <div style={styles.loginBox}>
-                <h2 style={styles.heading}>Login</h2>
+            <div style={styles.loginBox} className="glass-card animate-fade">
+                <h2 style={styles.heading}>Welcome Back</h2>
+                <p style={styles.subheading}>Sign in to your account</p>
                 <form onSubmit={handleLogin}>
                     <div style={styles.inputContainer}>
                         <input
                             type="email"
-                            placeholder="Email"
+                            placeholder="Email Address"
                             value={email}
                             onChange={(e) => setEmail(e.target.value)}
                             required
@@ -46,67 +60,84 @@ const Login = () => {
                             style={styles.input}
                         />
                     </div>
-                    <button type="submit" style={styles.button}>
-                        Login
+                    <button type="submit" style={styles.button} disabled={loading}>
+                        {loading ? "Signing In..." : "Sign In"}
                     </button>
                 </form>
+                <p style={styles.footerText}>
+                    Don't have an account?{" "}
+                    <Link to="/register" style={styles.footerLink}>
+                        Register
+                    </Link>
+                </p>
             </div>
         </div>
     );
 };
 
-// Inline styles
 const styles = {
     container: {
-        height: "100vh",
+        height: "calc(100vh - 80px)",
         display: "flex",
         justifyContent: "center",
         alignItems: "center",
-        backgroundColor: "#121212", // Black background
+        backgroundColor: "var(--bg-primary)",
     },
     loginBox: {
-        backgroundColor: "#1d1d1d", // Dark gray for form box
-        padding: "40px",
-        borderRadius: "10px",
-        boxShadow: "0 4px 10px rgba(0, 0, 0, 0.5)",
-        width: "300px",
+        padding: "50px 40px",
+        borderRadius: "20px",
+        width: "360px",
         textAlign: "center",
     },
     heading: {
-        color: "#fff",
-        marginBottom: "20px",
-        fontSize: "24px",
+        color: "var(--text-primary)",
+        marginBottom: "8px",
+        fontSize: "28px",
+        fontWeight: "400",
+    },
+    subheading: {
+        color: "var(--text-secondary)",
+        fontSize: "14px",
+        marginBottom: "36px",
     },
     inputContainer: {
-        marginBottom: "15px",
+        marginBottom: "16px",
     },
     input: {
         width: "100%",
-        padding: "12px",
-        margin: "10px 0",
-        border: "1px solid #333",
-        borderRadius: "5px",
-        backgroundColor: "#222",
-        color: "#fff",
-        fontSize: "16px",
-        transition: "all 0.3s ease",
-    },
-    inputFocus: {
-        borderColor: "#3b3b3b",
+        padding: "14px 16px",
+        border: "1px solid rgba(255, 255, 255, 0.08)",
+        borderRadius: "10px",
+        backgroundColor: "rgba(0, 0, 0, 0.2)",
+        color: "var(--text-primary)",
+        fontSize: "15px",
         outline: "none",
+        transition: "border-color 0.2s ease",
     },
     button: {
         width: "100%",
-        padding: "12px",
-        backgroundColor: "#ff5f57", // Accent color for button
-        color: "#fff",
+        padding: "14px",
+        backgroundColor: "var(--accent-gold)",
+        color: "var(--bg-primary)",
         border: "none",
-        borderRadius: "5px",
-        fontSize: "16px",
+        borderRadius: "10px",
+        fontSize: "15px",
+        fontWeight: "600",
         cursor: "pointer",
-        transition: "background-color 0.3s ease",
+        transition: "background-color 0.2s ease, transform 0.2s ease",
+        marginTop: "16px",
+        boxShadow: "0 4px 15px rgba(226,184,85,0.15)",
+    },
+    footerText: {
+        color: "var(--text-secondary)",
+        fontSize: "14px",
+        marginTop: "24px",
+    },
+    footerLink: {
+        color: "var(--accent-gold)",
+        textDecoration: "none",
+        fontWeight: "500",
     },
 };
 
 export default Login;
-

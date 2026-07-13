@@ -43,12 +43,14 @@ router.post("/login", async (req, res) => {
 
         const user = results[0];
 
-        // Compare hashed password
         const isMatch = await bcrypt.compare(password, user.password);
         if (isMatch) {
-            // Generate JWT token using rotated secret
             const token = jwt.sign({ userId: user.id }, process.env.JWT_SECRET, { expiresIn: "1h" });
-            res.json({ message: "Login successful", token });
+            res.json({ 
+                message: "Login successful", 
+                token, 
+                user: { id: user.id, name: user.name, email: user.email } 
+            });
         } else {
             res.status(401).json({ message: "Invalid email or password" });
         }

@@ -1,14 +1,15 @@
 import React, { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import MapComponent from '../components/MapComponent';
+import { API_BASE_URL } from '../config';
 
 const restaurantImages = [
-  "https://images.unsplash.com/photo-1600891964599-f61ba0e24092",
-  "https://plus.unsplash.com/premium_photo-1661883237884-263e8de8869b?w=600&auto=format&fit=crop&q=60&ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxzZWFyY2h8Mnx8cmVzdGF1cmFudHxlbnwwfHwwfHx8MA%3D%3D",
-  "https://images.unsplash.com/photo-1552566626-52f8b828add9",
-  "https://images.unsplash.com/photo-1504674900247-0877df9cc836",
-  "https://images.unsplash.com/photo-1517248135467-4c7edcad34c4?w=600&auto=format&fit=crop&q=60&ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxzZWFyY2h8M3x8cmVzdGF1cmFudHxlbnwwfHwwfHx8MA%3D%3D",
-  "https://images.unsplash.com/photo-1514933651103-005eec06c04b?w=600&auto=format&fit=crop&q=60&ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxzZWFyY2h8Nnx8cmVzdGF1cmFudHxlbnwwfHwwfHx8MA%3D%3D",
+  "https://images.unsplash.com/photo-1600891964599-f61ba0e24092?w=600",
+  "https://plus.unsplash.com/premium_photo-1661883237884-263e8de8869b?w=600",
+  "https://images.unsplash.com/photo-1552566626-52f8b828add9?w=600",
+  "https://images.unsplash.com/photo-1504674900247-0877df9cc836?w=600",
+  "https://images.unsplash.com/photo-1517248135467-4c7edcad34c4?w=600",
+  "https://images.unsplash.com/photo-1514933651103-005eec06c04b?w=600",
 ];
 
 const mockRestaurants = [
@@ -16,7 +17,7 @@ const mockRestaurants = [
     id: 1,
     name: 'Italian Pizza Place',
     cuisine: 'Italian',
-    price_ranges: '₹₹',
+    price_ranges: '$$',
     rating: 4.5,
     latitude: 51.505,
     longitude: -0.09,
@@ -26,7 +27,7 @@ const mockRestaurants = [
     id: 2,
     name: 'Mexican Taco Town',
     cuisine: 'Mexican',
-    price_ranges: '₹',
+    price_ranges: '$',
     rating: 4.2,
     latitude: 51.51,
     longitude: -0.1,
@@ -38,6 +39,7 @@ const RestaurantList = () => {
   const [restaurants, setRestaurants] = useState([]);
   const [filters, setFilters] = useState({ cuisine: '', price: '', distance: '', rating: '' });
   const [userLocation, setUserLocation] = useState(null);
+  const [loading, setLoading] = useState(true);
 
   // Get user's current location
   useEffect(() => {
@@ -50,19 +52,20 @@ const RestaurantList = () => {
       },
       (err) => {
         console.error("Geolocation error:", err);
-        setUserLocation({ latitude: 51.505, longitude: -0.09 }); // fallback location
+        setUserLocation({ latitude: 40.7128, longitude: -74.0060 }); // fallback to NYC
       }
     );
   }, []);
 
-  // Fetch from backend (filters except distance)
+  // Fetch from backend
   const fetchRestaurants = () => {
+    setLoading(true);
     const queryParams = new URLSearchParams();
     if (filters.cuisine) queryParams.append("cuisine", filters.cuisine);
     if (filters.price) queryParams.append("price", filters.price);
     if (filters.rating) queryParams.append("rating", filters.rating);
 
-    fetch(`http://localhost:5000/api/restaurants?${queryParams.toString()}`)
+    fetch(`${API_BASE_URL}/api/restaurants?${queryParams.toString()}`)
       .then(res => {
         if (!res.ok) throw new Error('Fetch failed');
         return res.json();
@@ -71,7 +74,7 @@ const RestaurantList = () => {
         const withDistance = data.map((r) => ({
           ...r,
           distance: userLocation
-            ? calculateDistance(userLocation.latitude, userLocation.longitude, r.latitude, r.longitude)
+            ? calculateDistance(userLocation.latitude, userLocation.longitude, Number(r.latitude), Number(r.longitude))
             : null
         }));
         const unique = Array.from(new Map(withDistance.map(item => [item.id, item])).values());
@@ -80,6 +83,9 @@ const RestaurantList = () => {
       .catch(err => {
         console.error("Using mock data:", err);
         setRestaurants(mockRestaurants);
+      })
+      .finally(() => {
+        setLoading(false);
       });
   };
 
@@ -100,13 +106,13 @@ const RestaurantList = () => {
       if (updated.price) queryParams.append("price", updated.price);
       if (updated.rating) queryParams.append("rating", updated.rating);
 
-      fetch(`http://localhost:5000/api/restaurants?${queryParams.toString()}`)
+      fetch(`${API_BASE_URL}/api/restaurants?${queryParams.toString()}`)
         .then(res => res.json())
         .then(data => {
           const withDistance = data.map((r) => ({
             ...r,
             distance: userLocation
-              ? calculateDistance(userLocation.latitude, userLocation.longitude, r.latitude, r.longitude)
+              ? calculateDistance(userLocation.latitude, userLocation.longitude, Number(r.latitude), Number(r.longitude))
               : null
           }));
           const unique = Array.from(new Map(withDistance.map(item => [item.id, item])).values());
@@ -137,24 +143,25 @@ const RestaurantList = () => {
   });
 
   return (
-    <div style={styles.container}>
-      <h2 style={styles.title}>Explore Restaurants</h2>
+    <div style={styles.container} className="animate-fade">
+      <h2 style={styles.title}>Discover Exceptional Cuisine</h2>
+      <p style={styles.subtitle}>Explore curated local dining choices and book tables instantly</p>
 
       {/* Filters */}
-      <div style={styles.filterContainer}>
+      <div style={styles.filterContainer} className="glass-card">
         <input
           type="text"
           name="cuisine"
           value={filters.cuisine}
           onChange={handleFilterChange}
-          placeholder="Cuisine"
+          placeholder="Cuisine Type (e.g. Italian)"
           style={styles.input}
         />
-        <select name="price" value={filters.price} onChange={handleFilterChange} style={styles.input}>
-          <option value="">Price</option>
-          <option value="₹">₹</option>
-          <option value="₹₹">₹₹</option>
-          <option value="₹₹₹">₹₹₹</option>
+        <select name="price" value={filters.price} onChange={handleFilterChange} style={styles.select}>
+          <option value="">Any Price</option>
+          <option value="$">$ (Budget)</option>
+          <option value="$$">$$ (Moderate)</option>
+          <option value="$$$">$$$ (Upscale)</option>
         </select>
         <input
           type="number"
@@ -169,106 +176,191 @@ const RestaurantList = () => {
           name="rating"
           value={filters.rating}
           onChange={handleFilterChange}
-          placeholder="Min Rating"
+          placeholder="Min Rating (1-5)"
           step="0.1"
+          min="1"
+          max="5"
           style={styles.input}
         />
       </div>
 
-      {/* Map */}
-      <MapComponent restaurants={filteredRestaurants} />
-
-      {/* Restaurant Cards */}
-      <div style={styles.cardGrid}>
-        {filteredRestaurants.length > 0 ? (
-          filteredRestaurants.map((restaurant, index) => (
-            <div key={restaurant.id} style={styles.card}>
-              <img
-                src={restaurantImages[index % restaurantImages.length]}
-                alt={restaurant.name}
-                style={styles.image}
-              />
-              <div style={styles.cardContent}>
-                <h3 style={styles.cardTitle}>{restaurant.name}</h3>
-                <p><strong>Cuisine:</strong> {restaurant.cuisine}</p>
-                <p><strong>Price:</strong> {restaurant.price_ranges}</p>
-                <p><strong>Distance:</strong> {restaurant.distance} km</p>
-                <p><strong>Rating:</strong> {restaurant.rating}⭐</p>
-                <Link to={`/restaurants/${restaurant.id}`} style={styles.link}>
-                  View Details →
-                </Link>
-              </div>
+      {/* Main Grid: Card list & Map */}
+      <div style={styles.mainGrid}>
+        <div style={styles.listSection}>
+          {loading ? (
+            <p style={styles.statusText}>Searching for restaurants...</p>
+          ) : filteredRestaurants.length > 0 ? (
+            <div style={styles.cardGrid}>
+              {filteredRestaurants.map((restaurant, index) => (
+                <div key={restaurant.id} style={styles.card} className="glass-card">
+                  <img
+                    src={restaurant.image_url || restaurantImages[index % restaurantImages.length]}
+                    alt={restaurant.name}
+                    style={styles.image}
+                  />
+                  <div style={styles.cardContent}>
+                    <h3 style={styles.cardTitle}>{restaurant.name}</h3>
+                    <div style={styles.cardInfoGrid}>
+                      <span style={styles.infoBadge}>{restaurant.cuisine}</span>
+                      <span style={styles.infoBadge}>{restaurant.price_ranges}</span>
+                      <span style={styles.ratingBadge}>★ {restaurant.rating}</span>
+                    </div>
+                    {restaurant.distance !== null && (
+                      <p style={styles.distanceText}>📍 {restaurant.distance} km away</p>
+                    )}
+                    <Link to={`/restaurants/${restaurant.id}`} style={styles.detailsLink}>
+                      View Details & Reservations →
+                    </Link>
+                  </div>
+                </div>
+              ))}
             </div>
-          ))
-        ) : (
-          <p style={{ textAlign: "center", marginTop: "30px" }}>No restaurants match your filters.</p>
-        )}
+          ) : (
+            <p style={styles.statusText}>No restaurants match your filters.</p>
+          )}
+        </div>
+        
+        {/* Map Container */}
+        <div style={styles.mapSection} className="glass-card">
+          <MapComponent restaurants={filteredRestaurants} />
+        </div>
       </div>
     </div>
   );
 };
 
-// Stylish Dark Theme
 const styles = {
   container: {
-    padding: '40px',
-    backgroundColor: '#121212',
-    color: '#fff',
-    minHeight: '100vh',
+    padding: '40px 80px',
+    backgroundColor: 'var(--bg-primary)',
+    minHeight: 'calc(100vh - 80px)',
   },
   title: {
-    fontSize: '32px',
-    fontWeight: 'bold',
+    fontSize: '36px',
+    fontWeight: '400',
     textAlign: 'center',
-    marginBottom: '30px',
-    color: '#f4a261'
+    marginBottom: '8px',
+    color: 'var(--text-primary)',
+    letterSpacing: '-0.5px',
+  },
+  subtitle: {
+    fontSize: '16px',
+    color: 'var(--text-secondary)',
+    textAlign: 'center',
+    marginBottom: '40px',
   },
   filterContainer: {
     display: 'flex',
     flexWrap: 'wrap',
-    gap: '15px',
+    gap: '16px',
     justifyContent: 'center',
-    marginBottom: '30px'
+    padding: '24px',
+    marginBottom: '40px',
+    borderRadius: '16px',
   },
   input: {
-    padding: '10px',
-    borderRadius: '6px',
-    border: '1px solid #444',
-    backgroundColor: '#1f1f1f',
-    color: '#fff',
-    minWidth: '180px'
+    padding: '12px 16px',
+    borderRadius: '10px',
+    border: '1px solid rgba(255, 255, 255, 0.08)',
+    backgroundColor: 'rgba(0, 0, 0, 0.2)',
+    color: 'var(--text-primary)',
+    minWidth: '200px',
+    outline: 'none',
+    fontSize: '14px',
+  },
+  select: {
+    padding: '12px 16px',
+    borderRadius: '10px',
+    border: '1px solid rgba(255, 255, 255, 0.08)',
+    backgroundColor: 'rgba(0, 0, 0, 0.2)',
+    color: 'var(--text-primary)',
+    minWidth: '200px',
+    outline: 'none',
+    fontSize: '14px',
+  },
+  mainGrid: {
+    display: 'flex',
+    gap: '30px',
+    flexWrap: 'wrap-reverse',
+  },
+  listSection: {
+    flex: '1.2',
+    minWidth: '320px',
+  },
+  mapSection: {
+    flex: '0.8',
+    minWidth: '320px',
+    height: '600px',
+    overflow: 'hidden',
+    position: 'sticky',
+    top: '120px',
   },
   cardGrid: {
     display: 'grid',
     gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))',
-    gap: '25px',
+    gap: '24px',
   },
   card: {
-    backgroundColor: '#1e1e1e',
-    borderRadius: '12px',
     overflow: 'hidden',
-    boxShadow: '0 0 10px rgba(0,0,0,0.4)',
-    transition: 'transform 0.3s ease',
-  },
-  cardContent: {
-    padding: '15px',
-  },
-  cardTitle: {
-    fontSize: '22px',
-    color: '#ff5f57',
-    marginBottom: '10px'
+    display: 'flex',
+    flexDirection: 'column',
+    borderRadius: '16px',
   },
   image: {
     width: '100%',
-    height: '180px',
-    objectFit: 'cover'
+    height: '200px',
+    objectFit: 'cover',
   },
-  link: {
-    display: 'inline-block',
-    marginTop: '10px',
-    color: '#f4a261',
+  cardContent: {
+    padding: '20px',
+    display: 'flex',
+    flexDirection: 'column',
+    flex: 1,
+  },
+  cardTitle: {
+    fontSize: '20px',
+    fontWeight: '500',
+    color: 'var(--text-primary)',
+    marginBottom: '12px',
+  },
+  cardInfoGrid: {
+    display: 'flex',
+    gap: '8px',
+    marginBottom: '12px',
+  },
+  infoBadge: {
+    backgroundColor: 'rgba(255,255,255,0.05)',
+    padding: '4px 10px',
+    borderRadius: '12px',
+    fontSize: '12px',
+    color: 'var(--text-secondary)',
+  },
+  ratingBadge: {
+    backgroundColor: 'rgba(226,184,85,0.15)',
+    padding: '4px 10px',
+    borderRadius: '12px',
+    fontSize: '12px',
+    color: 'var(--accent-gold)',
+    fontWeight: '600',
+  },
+  distanceText: {
+    fontSize: '13px',
+    color: 'var(--text-muted)',
+    marginBottom: '16px',
+  },
+  detailsLink: {
+    color: 'var(--accent-gold)',
     textDecoration: 'none',
-    fontWeight: 'bold'
+    fontWeight: '600',
+    fontSize: '14px',
+    marginTop: 'auto',
+    transition: 'color 0.2s ease',
+  },
+  statusText: {
+    textAlign: 'center',
+    color: 'var(--text-secondary)',
+    fontSize: '16px',
+    marginTop: '40px',
   }
 };
 

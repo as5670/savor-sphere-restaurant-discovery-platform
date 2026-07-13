@@ -3,23 +3,24 @@ import { Link } from "react-router-dom";
 
 const Home = () => {
     return (
-        <div style={styles.background}>
+        <div style={styles.container}>
             <div style={styles.overlay}>
-                <div style={styles.content}>
-                    <h1 style={styles.heading}>Welcome to SavorSphere</h1>
+                <div style={styles.contentBox} className="glass-card animate-fade">
+                    <span style={styles.badge}>SAVORSPHERE PLATFORM</span>
+                    <h1 style={styles.heading}>
+                        A Premium Dining <br />
+                        <span style={{ color: "var(--accent-gold)" }}>Discovery Experience</span>
+                    </h1>
                     <p style={styles.description}>
-                        Your personalized restaurant recommendation app.
+                        Discover exceptional local culinary spots, view real-time menus, and reserve tables instantly. Your dining journey reimagined.
                     </p>
 
                     <div style={styles.buttonContainer}>
-                        <Link to="/login">
-                            <button style={styles.button}>Login</button>
+                        <Link to="/restaurants" style={styles.primaryLink}>
+                            Explore Restaurants
                         </Link>
-                        <Link to="/register">
-                            <button style={styles.button}>Register</button>
-                        </Link>
-                        <Link to="/restaurants">
-                            <button style={styles.button}>View Restaurants</button>
+                        <Link to="/login" style={styles.secondaryLink}>
+                            Sign In
                         </Link>
                     </div>
                 </div>
@@ -29,58 +30,82 @@ const Home = () => {
 };
 
 const styles = {
-    background: {
-        backgroundImage:
-            "url('https://images.unsplash.com/photo-1600891964599-f61ba0e24092?ixlib=rb-4.0.3&auto=format&fit=crop&w=1950&q=80')",
+    container: {
+        backgroundImage: "linear-gradient(135deg, rgba(9,10,15,0.9) 30%, rgba(18,20,32,0.6)), url('https://images.unsplash.com/photo-1514933651103-005eec06c04b?w=1920&q=80')",
         backgroundSize: "cover",
         backgroundPosition: "center",
-        minHeight: "100vh",
+        minHeight: "calc(100vh - 80px)",
         display: "flex",
         justifyContent: "center",
         alignItems: "center",
     },
     overlay: {
-        backgroundColor: "rgba(0, 0, 0, 0.6)",
+        padding: "20px",
         width: "100%",
-        height: "100%",
         display: "flex",
         justifyContent: "center",
         alignItems: "center",
-        flexDirection: "column",
     },
-    content: {
+    contentBox: {
         textAlign: "center",
-        color: "#fff",
-        padding: "20px",
+        maxWidth: "680px",
+        padding: "60px 40px",
+        borderRadius: "24px",
+    },
+    badge: {
+        color: "var(--accent-gold)",
+        fontSize: "12px",
+        fontWeight: "600",
+        letterSpacing: "3px",
+        textTransform: "uppercase",
+        display: "inline-block",
+        marginBottom: "24px",
+        backgroundColor: "rgba(226,184,85,0.1)",
+        padding: "6px 16px",
+        borderRadius: "30px",
     },
     heading: {
         fontSize: "48px",
-        fontWeight: "bold",
-        marginBottom: "20px",
+        fontWeight: "400",
+        lineHeight: "1.2",
+        letterSpacing: "-0.5px",
+        marginBottom: "24px",
+        color: "var(--text-primary)",
     },
     description: {
-        fontSize: "20px",
+        fontSize: "17px",
+        color: "var(--text-secondary)",
+        lineHeight: "1.6",
         marginBottom: "40px",
-        maxWidth: "600px",
-        marginInline: "auto",
     },
     buttonContainer: {
         display: "flex",
-        gap: "20px",
-        flexWrap: "wrap",
+        gap: "16px",
         justifyContent: "center",
+        flexWrap: "wrap",
     },
-    button: {
-        padding: "14px 28px",
-        fontSize: "16px",
-        border: "none",
-        borderRadius: "8px",
-        backgroundColor: "#ff5f57",
-        color: "#fff",
-        cursor: "pointer",
-        transition: "transform 0.2s ease, background-color 0.3s ease",
+    primaryLink: {
+        padding: "14px 32px",
+        fontSize: "15px",
+        fontWeight: "600",
+        borderRadius: "30px",
+        backgroundColor: "var(--accent-gold)",
+        color: "var(--bg-primary)",
+        textDecoration: "none",
+        transition: "background-color 0.2s ease, transform 0.2s ease",
+        boxShadow: "0 4px 15px rgba(226,184,85,0.2)",
+    },
+    secondaryLink: {
+        padding: "14px 32px",
+        fontSize: "15px",
+        fontWeight: "600",
+        borderRadius: "30px",
+        backgroundColor: "rgba(255,255,255,0.05)",
+        color: "var(--text-primary)",
+        textDecoration: "none",
+        transition: "background-color 0.2s ease",
+        border: "1px solid rgba(255,255,255,0.1)",
     },
 };
 
 export default Home;
-
